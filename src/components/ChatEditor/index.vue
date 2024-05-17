@@ -42,6 +42,7 @@
 import newUpload from '@/components/Upload/index.vue'
 import { reactive, ref, toRefs, onMounted, watch, onUnmounted, computed, type VNode } from 'vue'
 import { useMenu } from './hooks/menu.hook'
+import { registerEvents } from './hooks/event.hook'
 
 const props = withDefaults(
   defineProps<{
@@ -64,16 +65,23 @@ const props = withDefaults(
   }
 )
 
+const emits = defineEmits<{
+  (event: 'sendMessage', message: string, fileList: File[]): void
+}>()
+
+const eleRefs = ref<HTMLElement | null>(null)
+
 const { menuList } = useMenu()
+
+const { register } = registerEvents(eleRefs)
 
 const showMenuList = computed<VNode>(() => <div>{menuList.map((menu) => menu())}</div>)
 
-const emits = defineEmits(['sendMessage'])
 const state = reactive({
   emitEvent: new Map([
     [
       'sendMessage',
-      (message, fileList) => {
+      (message: string, fileList: File[]) => {
         emits('sendMessage', message, fileList)
       }
     ]
@@ -85,27 +93,16 @@ const state = reactive({
 })
 const { fileList, fileOverTipShow, fileListCssShow } = toRefs(state)
 
-/* watch(
-  () => state.fileList,
-  (newVal) => {
-    console.log(newVal);
-  },
-  {
-    deep: true,
-  }
-); */
-
-const eleRefs = ref()
-/* watch(()=>eleRefs.value,(newVal)=>{
-  console.log(newVal.children);
-},{
-  deep:true
-}) */
 const upload = ref()
+
+const keydownHandler = (event: Event) => {}
+
+register({ keydown: keydownHandler })
+
 onMounted(() => {
-  eleRefs.value.addEventListener('keydown', (e) => {
-    if (!e.shiftKey && e.keyCode == '13') {
-      e.cancelBubble = true
+  eleRefs.value.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (!e.shiftKey && e.keyCode === 13) {
+      e.cancelBubble = true // ie
       e.preventDefault()
       e.stopPropagation()
       send(e)
@@ -254,5 +251,5 @@ defineExpose({ addMessage })
 </script>
 
 <style scoped lang="scss">
-@import '@/styles/chatEditor.scss';
+@import './chatEditor.scss';
 </style>
