@@ -3,19 +3,19 @@ import { onMounted, onUnmounted, type Ref } from 'vue'
 export type EventKey = keyof GlobalEventHandlersEventMap
 
 export type EventRecord = Partial<{
-  [key in EventKey]: (event: Event) => void
+  [key in EventKey]: { func: (event: Event) => void; passive?: boolean }
 }>
 
 export const registerEvents = (element: Ref<HTMLElement | null>) => {
   const register = (record: EventRecord) => {
     onMounted(() => {
-      for (const [key, value] of Object.entries(record)) {
-        element.value?.addEventListener(key, value)
+      for (const [key, { func, passive }] of Object.entries(record)) {
+        element.value?.addEventListener(key, func, passive ?? true)
       }
     })
     onUnmounted(() => {
-      for (const [key, value] of Object.entries(record)) {
-        element.value?.removeEventListener(key, value)
+      for (const [key, { func, passive }] of Object.entries(record)) {
+        element.value?.addEventListener(key, func, passive ?? true)
       }
     })
   }

@@ -5,7 +5,7 @@
         <button class="upload-btn" style="display: block">上传文件</button>
       </slot>
     </div>
-   <!--  <div
+    <!--  <div
       class="upload__list"
       :style="{ display: fileList.length ? 'block' : 'none' }"
     >
@@ -28,162 +28,161 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, toRefs, reactive } from 'vue';
-const props = defineProps({
-  multiple: {
-    type: Boolean,
-    default: false,
-  },
-  accept: {
-    type: String,
-    default:''
-  },
-  limit: {
-    type: Number,
-    default: 0,
-  },
-  fileList: {
-    type: Array,
-    default: ()=>[],
-  },
-});
-const emits = defineEmits(['onExceed','onChange']);
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+const props = withDefaults(
+  defineProps<{
+    multiple: boolean
+    accept: string
+    limit: number
+    fileList: File[]
+  }>(),
+  {}
+)
+const emits = defineEmits<{
+  (event: 'onExceed', file: File[]): void
+  (event: 'onChange', file: File): void
+  (event: 'update:file-list', file: File[]): void
+}>()
 
-const inputRef = ref();
+const fileList = computed<File[]>({
+  get() {
+    return props.fileList
+  },
+  set(files: File[]) {
+    emits('update:file-list', files)
+  }
+})
+
+const inputRef = ref<HTMLInputElement | null>(null)
 
 const clickUpload = () => {
-  inputRef.value.click();
-};
-const fileChange = (e) => {
-  const { files } = e.target;
-  handlerFile(Array.from(files));
-};
-const handlerFile = (files) => {
+  if (!inputRef.value) throw new Error('get Dom error')
+  inputRef.value.click()
+}
+const fileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  const { files } = target
+  handlerFile(Array.from(files!))
+}
+const handlerFile = (files: File[]) => {
   if (props.limit && props.fileList.length + files.length > props.limit) {
-    emits('onExceed', files);
-    return;
+    emits('onExceed', files)
+    return
   }
   if (!props.multiple) {
-    files.slice(0, 1);
+    files.slice(0, 1)
   }
   files.map((o, index) => {
     const file = Object.assign(o, { uid: new Date().getTime() + index })
-    props.fileList.push(
-file
-    );
-  emits('onChange',file)
+    fileList.value.push(file)
+    emits('onChange', file)
+  })
+}
 
-  });
-};
-const handlerExceed = (files) => {
-  alert('超了');
-};
-const submit = () => {};
-const deleteFile = (singlefile, i) => {
-  props.fileList.splice(i, 1);
-  const dt = new DataTransfer();
-  const { files } = inputRef.value;
-  for (let i = 0; i < files.length; i++) {
-    const filedd = files[i];
-    if (filedd !== singlefile) dt.items.add(filedd); // here you exclude the file. thus removing it.
-  }
-  inputRef.value.files = dt.files;
-};
+const submit = () => {}
+// const deleteFile = (singlefile, i) => {
+//   props.fileList.splice(i, 1)
+//   const dt = new DataTransfer()
+//   const { files } = inputRef.value
+//   for (let i = 0; i < files.length; i++) {
+//     const filedd = files[i]
+//     if (filedd !== singlefile) dt.items.add(filedd) // here you exclude the file. thus removing it.
+//   }
+//   inputRef.value.files = dt.files
+// }
 const clearFiles = () => {
-  // props.fileList = [];
-  const dt = new DataTransfer();
-  inputRef.value.files = dt.files;
-};
-defineExpose({ submit, clearFiles });
-const filterSize = (number) => {
-  if (number < 1024) {
-    return `${number} B`;
-  } else if (number >= 1024 && number < 1048576) {
-    return `${(number / 1024).toFixed(1)} KB`;
-  } else if (number >= 1048576) {
-    return `${(number / 1048576).toFixed(1)} MB`;
-  }
-};
-onMounted(() => {
-  /* const file = document.getElementById('file');
+  if (!inputRef.value) throw new Error('get Dom error')
+  const dt = new DataTransfer()
+  inputRef.value.files = dt.files
+}
+
+// const filterSize = (number) => {
+//   if (number < 1024) {
+//     return `${number} B`
+//   } else if (number >= 1024 && number < 1048576) {
+//     return `${(number / 1024).toFixed(1)} KB`
+//   } else if (number >= 1048576) {
+//     return `${(number / 1048576).toFixed(1)} MB`
+//   }
+// }
+onMounted(() => {})
+/* const file = document.getElementById('file');
   const upload = document.getElementById('upload');
   const preview = document.getElementById('preview');
   file.style.display = 'none'; */
 
-  /* 触发上传按钮 */
-  /*  upload.addEventListener('click', () => {
+/* 触发上传按钮 */
+/*  upload.addEventListener('click', () => {
     file.click();
   }); */
 
-  /* 触发文件更改按钮 */
-  /* input:file 有 change、input 事件 */
-  /*  file.addEventListener('change', uploadDisplay);
+/* 触发文件更改按钮 */
+/* input:file 有 change、input 事件 */
+/*  file.addEventListener('change', uploadDisplay);
   file.addEventListener('input', uploadInput); */
 
-  function uploadDisplay() {
-    while (preview.firstChild) {
-      preview.removeChild(preview.firstChild);
-    }
-    const curFiles = file.files;
-    if (curFiles.length > 3) {
-      return;
-    }
-    if (curFiles.length === 0) {
-      const para = document.createElement('p');
-      para.textContent = 'No files currently selected for upload';
-      preview.appendChild(para);
-    } else {
-      const list = document.createElement('ol');
-      preview.appendChild(list);
+// function uploadDisplay() {
+//   while (preview.firstChild) {
+//     preview.removeChild(preview.firstChild)
+//   }
+//   const curFiles = file.files
+//   if (curFiles.length > 3) {
+//     return
+//   }
+//   if (curFiles.length === 0) {
+//     const para = document.createElement('p')
+//     para.textContent = 'No files currently selected for upload'
+//     preview.appendChild(para)
+//   } else {
+//     const list = document.createElement('ol')
+//     preview.appendChild(list)
 
-      for (const file of curFiles) {
-        const listItem = document.createElement('li');
-        const para = document.createElement('p');
-        if (file) {
-          para.textContent = `File name ${
-            file.name
-          }, file size ${returnFileSize(file.size)}.`;
-          const image = document.createElement('img');
-          image.src = URL.createObjectURL(file);
-          const button = document.createElement('button');
-          button.onclick = function () {
-            delFile(file);
-          };
-          // button.setAttribute('onclick', `delFile(file)`);
-          button.innerText = '删除';
-          listItem.appendChild(button);
-          listItem.appendChild(image);
-          listItem.appendChild(para);
-        } else {
-          para.textContent = `File name ${file.name}: Not a valid file type. Update your selection.`;
-          listItem.appendChild(para);
-        }
+//     for (const file of curFiles) {
+//       const listItem = document.createElement('li')
+//       const para = document.createElement('p')
+//       if (file) {
+//         para.textContent = `File name ${file.name}, file size ${returnFileSize(file.size)}.`
+//         const image = document.createElement('img')
+//         image.src = URL.createObjectURL(file)
+//         const button = document.createElement('button')
+//         button.onclick = function () {
+//           delFile(file)
+//         }
+//         // button.setAttribute('onclick', `delFile(file)`);
+//         button.innerText = '删除'
+//         listItem.appendChild(button)
+//         listItem.appendChild(image)
+//         listItem.appendChild(para)
+//       } else {
+//         para.textContent = `File name ${file.name}: Not a valid file type. Update your selection.`
+//         listItem.appendChild(para)
+//       }
 
-        list.appendChild(listItem);
-      }
-    }
-  }
-  function delFile(singlefile) {
-    const dt = new DataTransfer();
-    const input = document.getElementById('file');
-    const { files } = input;
-    console.log(input.files);
-    for (let i = 0; i < files.length; i++) {
-      const filedd = files[i];
-      console.log(filedd === singlefile);
-      if (filedd !== singlefile) dt.items.add(filedd); // here you exclude the file. thus removing it.
-    }
-    input.files = dt.files;
-    console.log(input.files);
-  }
-  function uploadInput(e) {
-    if (e.target.files.length > 5) {
-      e.preventDefault();
-    }
-  }
-  function returnFileSize(number) {}
-});
+//       list.appendChild(listItem)
+//     }
+//   }
+// }
+// function delFile(singlefile) {
+//   const dt = new DataTransfer()
+//   const input = document.getElementById('file')
+//   const { files } = input
+//   console.log(input.files)
+//   for (let i = 0; i < files.length; i++) {
+//     const filedd = files[i]
+//     console.log(filedd === singlefile)
+//     if (filedd !== singlefile) dt.items.add(filedd) // here you exclude the file. thus removing it.
+//   }
+//   input.files = dt.files
+//   console.log(input.files)
+// }
+// function uploadInput(e) {
+//   if (e.target.files.length > 5) {
+//     e.preventDefault()
+//   }
+// }
+
+defineExpose({ submit, clearFiles })
 </script>
 
 <style lang="scss" scoped>

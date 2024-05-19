@@ -20,5 +20,5 @@ export const useMenu = () => {
       class: 'pointer ml-md',
       color: '#4b4b4b'
     })
-  return { menuList: [emoji, file] }
+  return { emoji, file }
 }
